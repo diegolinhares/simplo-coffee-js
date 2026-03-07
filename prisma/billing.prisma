@@ -1,0 +1,123 @@
+model Subscription {
+  id                   String    @id @default(uuid())
+  organizationId       String    @map("organization_id")
+  simploSubscriptionId String    @unique @map("simplo_subscription_id")
+  status               String    @default("pending")
+  paymentMethodType    String?   @map("payment_method_type")
+  currentPeriodStart   DateTime? @map("current_period_start")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  canceledAt           DateTime? @map("canceled_at")
+  isTrial              Boolean   @default(false) @map("is_trial")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invoices     Invoice[]
+  charges      Charge[]
+  orders       Order[]
+
+  @@index([organizationId])
+  @@map("subscription")
+}
+
+model Invoice {
+  id                  String    @id @default(uuid())
+  organizationId      String    @map("organization_id")
+  simploInvoiceId     String    @unique @map("simplo_invoice_id")
+  subscriptionId      String?   @map("subscription_id")
+  status              String
+  amountCents         Int       @map("amount_cents")
+  refundedAmountCents Int       @default(0) @map("refunded_amount_cents")
+  paidAt              DateTime? @map("paid_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  charges      Charge[]
+  refunds      Refund[]
+  order        Order?
+
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@map("invoice")
+}
+
+model WebhookEvent {
+  id             String    @id @default(uuid())
+  simploEventId  String    @unique @map("simplo_event_id")
+  eventType      String    @map("event_type")
+  organizationId String?   @map("organization_id")
+  payload        Json
+  processedAt    DateTime? @map("processed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@map("webhook_event")
+}
+
+model Charge {
+  id                    String    @id @default(uuid())
+  organizationId        String    @map("organization_id")
+  simploPaymentIntentId String    @unique @map("simplo_payment_intent_id")
+  invoiceId             String?   @map("invoice_id")
+  subscriptionId        String?   @map("subscription_id")
+  amountCents           Int       @map("amount_cents")
+  status                String
+  dueAt                 DateTime? @map("due_at")
+  notifiedAt            DateTime? @map("notified_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invoice      Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  refunds      Refund[]
+
+  @@index([organizationId])
+  @@index([invoiceId])
+  @@index([subscriptionId])
+  @@map("charge")
+}
+
+model Order {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  invoiceId      String    @unique @map("invoice_id")
+  subscriptionId String?   @map("subscription_id")
+  amountCents    Int       @map("amount_cents")
+  status         String
+  canceledAt     DateTime? @map("canceled_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@map("order")
+}
+
+model Refund {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  simploRefundId String   @unique @map("simplo_refund_id")
+  chargeId       String?  @map("charge_id")
+  invoiceId      String?  @map("invoice_id")
+  amountCents    Int      @map("amount_cents")
+  reason         String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  charge       Charge?      @relation(fields: [chargeId], references: [id], onDelete: Restrict)
+  invoice      Invoice?     @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([chargeId])
+  @@index([invoiceId])
+  @@map("refund")
+}

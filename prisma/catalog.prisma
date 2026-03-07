@@ -1,0 +1,31 @@
+model Product {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  externalCode    String   @unique @map("external_code")
+  simploProductId String   @unique @map("simplo_product_id")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  prices Price[]
+
+  @@map("product")
+}
+
+model Price {
+  id            String   @id @default(uuid())
+  productId     String   @map("product_id")
+  simploPriceId String   @unique @map("simplo_price_id")
+  amountCents   Int      @map("amount_cents")
+  type          String   // "recurring" | "one_time"
+  interval      String?  // "month" | "year" (null for one_time)
+  intervalCount Int?     @map("interval_count")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("price")
+}
